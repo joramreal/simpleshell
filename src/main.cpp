@@ -32,6 +32,7 @@
 #include <sys/wait.h>   // waitpid(), open()
 #include <sys/stat.h>   // open()
 #include <unistd.h>     // exec(), fork(), close(), dup2(), pipe(), ...
+#include <signal.h>
 
 
 
@@ -168,6 +169,35 @@ bool onCd(const std::string& command, cli::ShellArguments const& arguments)
 {
     char** path =  cli::utility::stdVectorStringToArgV(arguments.arguments);
     chdir(path[1]);
+    return false;
+}
+
+bool onKill(const std::string& command, cli::ShellArguments const& arguments)
+{
+    using namespace cli::prettyprint;
+
+    std::cout << prettyprint;
+    std::cout << "command:   " << command << std::endl;
+    std::cout << "arguments: " << arguments << std::endl;
+    std::cout << "------------------------" << std::endl;
+    std::cout << noprettyprint << std::endl;
+    
+    if (arguments.arguments.size() < 2) {
+	      std::cout << std::endl;
+	      return false;
+    }
+    elif (arguments.arguments.size() == 2) {
+      int pid = atoi(arguments.arguments[1].c_str());
+      std::cout << "Matamos el proceso con pid: " << pid << std::endl;
+      kill(pid, SIGTERM);
+    }
+    
+    elif (arguments.arguments.size() == 4) {
+      if (arguments.arguments[1].c_str() == "-s") {
+	std::cout << "PEEP " << std::endl;
+      }
+    }
+   
     return false;
 }
 
@@ -513,6 +543,7 @@ int main(int argc, char** argv)
     interpreter.onRunCommand("exit", &onExit);
     interpreter.onRunCommand("echo", &onEcho);
     interpreter.onRunCommand("cd", &onCd);
+    interpreter.onRunCommand("kill", &onKill);
     interpreter.onRunCommand("mi_ls", &onMi_ls);
     interpreter.onRunCommand("lswc", &onLswc);
 
