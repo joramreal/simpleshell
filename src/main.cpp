@@ -175,29 +175,43 @@ bool onCd(const std::string& command, cli::ShellArguments const& arguments)
 bool onKill(const std::string& command, cli::ShellArguments const& arguments)
 {
     using namespace cli::prettyprint;
-
-    std::cout << prettyprint;
-    std::cout << "command:   " << command << std::endl;
-    std::cout << "arguments: " << arguments << std::endl;
-    std::cout << "------------------------" << std::endl;
-    std::cout << noprettyprint << std::endl;
     
     if (arguments.arguments.size() < 2) {
 	      std::cout << std::endl;
+	      std::cout << "----------------------LISTADO DE SEÑALES----------------------" << std::endl;
+	      std::cout << std::endl;
+	      std::cout << "1) SIGHUP        2) SIGINT       3) SIGQUIT      4) SIGILL" << std::endl;
+	      std::cout << "5) SIGTRAP       6) SIGABRT      7) SIGBUS       8) SIGFPE" << std::endl;
+	      std::cout << "9) SIGKILL      10) SIGUSR1     11) SIGSEGV     12) SIGUSR2" << std::endl;
+	      std::cout << "13) SIGPIPE     14) SIGALRM     15) SIGTERM     17) SIGCHLD" << std::endl;
+	      std::cout << "18) SIGCONT     19) SIGSTOP     20) SIGTSTP     21) SIGTTIN" << std::endl;
+	      std::cout << "22) SIGTTOU     23) SIGURG      24) SIGXCPU     25) SIGXFSZ" << std::endl;
+	      std::cout << "26) SIGVTALRM   27) SIGPROF     28) SIGWINCH    29) SIGIO" << std::endl;
+	      std::cout << "30) SIGPWR      31) SIGSYS      34) SIGRTMIN    35) SIGRTMIN+1" << std::endl;
+	      std::cout << "36) SIGRTMIN+2  37) SIGRTMIN+3  38) SIGRTMIN+4  39) SIGRTMIN+5" << std::endl;
+	      std::cout << "40) SIGRTMIN+6  41) SIGRTMIN+7  42) SIGRTMIN+8  43) SIGRTMIN+9" << std::endl;
+	      std::cout << "44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13" << std::endl;
+	      std::cout << "48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13" << std::endl;
+	      std::cout << "52) SIGRTMAX-12 53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9" << std::endl;
+	      std::cout << "56) SIGRTMAX-8  57) SIGRTMAX-7  58) SIGRTMAX-6  59) SIGRTMAX-5" << std::endl;
+	      std::cout << "60) SIGRTMAX-4  61) SIGRTMAX-3  62) SIGRTMAX-2  63) SIGRTMAX-1" << std::endl;
+	      std::cout << "64) SIGRTMAX" << std::endl;   
+	      std::cout << std::endl;
 	      return false;
     }
-    elif (arguments.arguments.size() == 2) {
+    else if (arguments.arguments.size() == 2) {
       int pid = atoi(arguments.arguments[1].c_str());
       std::cout << "Matamos el proceso con pid: " << pid << std::endl;
       kill(pid, SIGTERM);
     }
     
-    elif (arguments.arguments.size() == 4) {
-      if (arguments.arguments[1].c_str() == "-s") {
-	std::cout << "PEEP " << std::endl;
+    else if (arguments.arguments.size() == 4) {
+      if (strcmp(arguments.arguments[1].c_str(),"-s") == 0){
+	int senal = atoi(arguments.arguments[2].c_str());
+	int pid = atoi(arguments.arguments[3].c_str());
+	kill(pid, senal);
       }
     }
-   
     return false;
 }
 
