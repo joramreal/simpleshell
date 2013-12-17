@@ -273,6 +273,11 @@ bool onOtherCommand(const std::string& command,
 
     int pipeFileDes[2] = {-1, -1};
     
+    for (unsigned i = 0; i < arguments.variables.size(); ++i){
+      std::cout << "Este comando será ejecutado con la variable de entorno " << arguments.variables[i].name.c_str() << " a " <<  arguments.variables[i].value.c_str() << std::endl;
+      setenv(arguments.variables[i].name.c_str(),arguments.variables[i].value.c_str(),1);
+    }
+      
     if (arguments.terminator == cli::ShellArguments::PIPED)
       pipe(pipeFileDes);
     
