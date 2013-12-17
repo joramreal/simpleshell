@@ -42,6 +42,9 @@ const char INTRO_TEXT[] = "\x1b[2J\x1b[H"
 
 const char PROMPT_TEXT[] = "$ ";
 
+// Variable externa usada para el pipe
+int aux = 0;
+
 //
 // Function to be invoked by the interpreter when the user inputs the
 // 'exit' command.
@@ -76,6 +79,12 @@ bool onEcho(const std::string& command, cli::ShellArguments const& arguments)
     return false;
 }
 
+bool onCd(const std::string& command, cli::ShellArguments const& arguments)
+{
+	char** path =  cli::utility::stdVectorStringToArgV(arguments.arguments);
+	chdir(path[1]);
+    return false;
+}
 
 /*
 // Function to be invoked by the interpreter when the user inputs any
@@ -127,116 +136,28 @@ bool onOtherCommand(const std::string& command,
 {
     using namespace cli::prettyprint;
 
-    std::cout << prettyprint;
-    std::cout << "command:   " << command << std::endl;
-    std::cout << "arguments: " << arguments << std::endl;
-    std::cout << "------------------------" << std::endl;
-    std::cout << noprettyprint << std::endl;
-
-    pid_t childPid = fork();
-    if (childPid == 0) {            // Proceso hijo
-      for (unsigned i = 0; i < arguments.redirections.size(); ++i){
-            int fd = -1;
-            int mode = S_IRUSR | S_IWUSR |      // u+rw
-                       S_IRGRP | S_IWGRP |      // g+rw
-                       S_IROTH | S_IWOTH;       // o+rw
-  		if (arguments.redirections[i].type ==
-                	cli::StdioRedirection::TRUNCATED_OUTPUT) {
-                	fd = open(arguments.redirections[i].argument.c_str(),
-                   	 O_CREAT | O_TRUNC | O_WRONLY, mode);
-                	if (fd >= 0) {
-                   		 dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
-                    		close(fd);
-                	}
-            	}
-		if (arguments.redirections[i].type ==
-                	cli::StdioRedirection::APPENDED_OUTPUT) {
-                	fd = open(arguments.redirections[i].argument.c_str(),
-                   	 O_CREAT | O_APPEND | O_WRONLY, mode);
-                	if (fd >= 0) {
-                   		 dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
-                    		close(fd);
-                	}
-            	}
-		if (arguments.redirections[i].type ==
-                	cli::StdioRedirection::INPUT) {
-                	fd = open(arguments.redirections[i].argument.c_str(),
-                   	 O_RDONLY, mode);
-                	if (fd >= 0) {
-                   		 dup2(fd, 0);    // El fd 1 se cierra antes de duplicar
-                    		close(fd);
-                	}
-            	}
-		if (fd < 0) {
-                std::cerr << program_invocation_short_name
-                          << ": open: "
-                          << strerror(errno)
-                          << std::endl;
-                exit(1);
-            	}
- 
-    	}
-	  if (! arguments.arguments.empty()) {
-            // Ejecutar el programa indicado en la línea de comandos.
-            // Usamos execvp() para que el programa sea buscado en el PATH
-            char** argv = cli::utility::stdVectorStringToArgV(arguments.arguments);
-
-	    //std::cout << argv[0] << endl;
-	    //std::cout << argv[1] << endl;
-
-            execvp(argv[0], argv);
-
-            // Si execvp() retorna, es porque ha habido algún error.
-            // Mostramos el error y matamos el proceso para no tener múltiples
-            // shells ejectuándose a la vez.
-            std::cerr << program_invocation_short_name
-                      << ": execvp: "
-                      << strerror(errno)
-                      << std::endl;
-
-            exit(127);
-        }
-	exit(0);
-
-    }
-    else {			    // Proceso padre
-  	// Si no se quiso lanzar en background (terminador '&') esperar a que el
-    	// proceso hijo termine
-   	if (childPid > 0 ) {
-      	  if (arguments.terminator == cli::ShellArguments::NORMAL) {
-            waitpid(childPid, NULL, 0);
-       	  }
-    	}
-    	else {
-       	 std::cerr << program_invocation_short_name
-                  << ": fork: "
-                  << strerror(errno)
-                  << std::endl;
-    	}
-
-    	// Espera no bloqueante para recuperar la información acerca de los hijos
-    	// evitando la aparición de procesos zombi.
-    	while(waitpid(-1, NULL, WNOHANG) > 0);
-
-    	return false;
-    }
-
-    return false;
-}
-
-bool onOtherCommand2(const std::string& command,
-    cli::ShellArguments const& arguments)
-{
-    using namespace cli::prettyprint;
-
     /*std::cout << prettyprint;
     std::cout << "command:   " << command << std::endl;
     std::cout << "arguments: " << arguments << std::endl;
     std::cout << "------------------------" << std::endl;
     std::cout << noprettyprint << std::endl;*/
 
+    int pipeFileDes[2] = {-1, -1};
+    
+    if (arguments.terminator == cli::ShellArguments::PIPED)
+      pipe(pipeFileDes);
+    
     pid_t childPid = fork();
     if (childPid == 0) {            // Proceso hijo
+      if (aux > 0) {
+			dup2(aux,0);	// duplicamos para poder cerrarlo después
+			close(aux);
+      }	
+      if (arguments.terminator == cli::ShellArguments::PIPED) {
+			close (pipeFileDes[0]);
+			dup2(pipeFileDes[1], 1);
+			close (pipeFileDes[1]);
+      }
       for (unsigned i = 0; i < arguments.redirections.size(); ++i){
             int fd = -1;
             int mode = S_IRUSR | S_IWUSR |      // u+rw
@@ -247,7 +168,7 @@ bool onOtherCommand2(const std::string& command,
                 	fd = open(arguments.redirections[i].argument.c_str(),
                    	 O_CREAT | O_TRUNC | O_WRONLY, mode);
                 	if (fd >= 0) {
-                   		 dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
+                   		dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
                     		close(fd);
                 	}
             	}
@@ -256,7 +177,7 @@ bool onOtherCommand2(const std::string& command,
                 	fd = open(arguments.redirections[i].argument.c_str(),
                    	 O_CREAT | O_APPEND | O_WRONLY, mode);
                 	if (fd >= 0) {
-                   		 dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
+                   		dup2(fd, 1);    // El fd 1 se cierra antes de duplicar
                     		close(fd);
                 	}
             	}
@@ -265,7 +186,7 @@ bool onOtherCommand2(const std::string& command,
                 	fd = open(arguments.redirections[i].argument.c_str(),
                    	 O_RDONLY, mode);
                 	if (fd >= 0) {
-                   		 dup2(fd, 0);    // El fd 1 se cierra antes de duplicar
+                   		dup2(fd, 0);    // El fd 1 se cierra antes de duplicar
                     		close(fd);
                 	}
             	}
@@ -276,18 +197,12 @@ bool onOtherCommand2(const std::string& command,
                           << std::endl;
                 exit(1);
             	}
- 
-    	}
-	  if (! arguments.arguments.empty()) {
+      }
+      if (! arguments.arguments.empty()) {
             // Ejecutar el programa indicado en la línea de comandos.
             // Usamos execvp() para que el programa sea buscado en el PATH
             char** argv = cli::utility::stdVectorStringToArgV(arguments.arguments);
-
-	    //std::cout << argv[0] << endl;
-	    //std::cout << argv[1] << endl;
-
             execvp(argv[0], argv);
-
             // Si execvp() retorna, es porque ha habido algún error.
             // Mostramos el error y matamos el proceso para no tener múltiples
             // shells ejectuándose a la vez.
@@ -295,19 +210,21 @@ bool onOtherCommand2(const std::string& command,
                       << ": execvp: "
                       << strerror(errno)
                       << std::endl;
-
             exit(127);
-        }
-	exit(0);
-
+      }
+      exit(0);
     }
     else {			    // Proceso padre
   	// Si no se quiso lanzar en background (terminador '&') esperar a que el
     	// proceso hijo termine
-   	if (childPid > 0 ) {
-      	  if (arguments.terminator == cli::ShellArguments::NORMAL) {
-            waitpid(childPid, NULL, 0);
-       	  }
+	if (childPid > 0 ) {
+		if (arguments.terminator == cli::ShellArguments::PIPED) {
+			close(pipeFileDes[1]);
+			aux = pipeFileDes[0];
+		}
+		if (arguments.terminator == cli::ShellArguments::NORMAL) {
+			waitpid(childPid, NULL, 0);
+		}
     	}
     	else {
        	 std::cerr << program_invocation_short_name
@@ -315,16 +232,11 @@ bool onOtherCommand2(const std::string& command,
                   << strerror(errno)
                   << std::endl;
     	}
-
     	// Espera no bloqueante para recuperar la información acerca de los hijos
     	// evitando la aparición de procesos zombi.
     	while(waitpid(-1, NULL, WNOHANG) > 0);
-
     	return false;
-
-
     }
-
     return false;
 }
 
@@ -572,6 +484,7 @@ int main(int argc, char** argv)
     // the 'exit' command
     interpreter.onRunCommand("exit", &onExit);
     interpreter.onRunCommand("echo", &onEcho);
+    interpreter.onRunCommand("cd", &onCd);
     interpreter.onRunCommand("mi_ls", &onMi_ls);
     interpreter.onRunCommand("lswc", &onLswc);
 
