@@ -33,9 +33,7 @@
 #include <sys/stat.h>   // open()
 #include <unistd.h>     // exec(), fork(), close(), dup2(), pipe(), ...
 #include <signal.h>
-
-
-
+#include <sys/stat.h>
 
 const char INTRO_TEXT[] = "\x1b[2J\x1b[H"
                           "Simple Shell - C++ Demo\n"
@@ -210,6 +208,269 @@ bool onKill(const std::string& command, cli::ShellArguments const& arguments)
 	int senal = atoi(arguments.arguments[2].c_str());
 	int pid = atoi(arguments.arguments[3].c_str());
 	kill(pid, senal);
+      }
+    }
+    return false;
+}
+
+bool onTest(const std::string& command, cli::ShellArguments const& arguments)
+{
+    using namespace cli::prettyprint;
+    
+    if (arguments.arguments.size() < 2) {
+      std::cout << "-----------------------------------Comando Test--------------------------------------" << std::endl;
+      std::cout << "Uso: test expresion..." << std::endl;
+      std::cout << std::endl;
+      std::cout << "Expresiones:" << std::endl;
+      std::cout << "-b fichero verdad si fichero existe y es un fichero especial de bloques." << std::endl;
+      std::cout << "-c fichero verdad si fichero existe y es un fichero especial de caracteres." << std::endl;
+      std::cout << "-d fichero verdad si fichero existe y es un directorio." << std::endl;
+      std::cout << "-e fichero verdad si fichero existe." << std::endl;
+      std::cout << "-f fichero verdad si fichero existe y es un fichero regular." << std::endl;
+      std::cout << "-g fichero verdad si fichero existe y tiene el bit SGID." << std::endl;
+      std::cout << "-h fichero verdad si fichero existe y es un enlace simbólico o blando." << std::endl;
+      std::cout << "-p fichero verdad si fichero existe y es una tubería con nombre (FIFO)." << std::endl;
+      std::cout << "-r fichero verdad si fichero existe y se puede leer." << std::endl;
+      std::cout << "-s fichero verdad si fichero existe y tiene un tamaño mayor que cero." << std::endl;
+      std::cout << "-t fd verdad si el descriptor de fichero fd está abierto y se refiere a una terminal." << std::endl;
+      std::cout << "-u fichero verdad si fichero existe y tiene el bit SUID." << std::endl;
+      std::cout << "-w fichero verdad si fichero existe y se puede modificar." << std::endl;
+      std::cout << "-x fichero verdad si fichero existe y es ejecutable." << std::endl;
+      std::cout << "-L fichero verdad si fichero existe y es un enlace simbólico o blando." << std::endl;
+      std::cout << "-z cadena verdad si la longitud de cadena es cero." << std::endl;
+      std::cout << "-n cadena verdad si la longitud de cadena no es cero." << std::endl;
+      std::cout << "cad1 = cad2 verdad si las cadenas son iguales." << std::endl;
+      std::cout << "cad1 != cad2 verdad si las cadenas no son iguales." << std::endl;
+      std::cout << "INTEGER1 -eq INTEGER2	INTEGER1 es igual a INTEGER2" << std::endl;
+      std::cout << "INTEGER1 -ge INTEGER2	INTEGER1 es mayor o igual a INTEGER2" << std::endl;
+      std::cout << "INTEGER1 -gt INTEGER2	INTEGER1 es mayor que INTEGER2" << std::endl;
+      std::cout << "INTEGER1 -le INTEGER2	INTEGER1 es menor o igual a INTEGER2" << std::endl;
+      std::cout << "INTEGER1 -lt INTEGER2	INTEGER1 es menor que INTEGER2" << std::endl;
+      std::cout << "INTEGER1 -ne INTEGER2	INTEGER1 es no igual a INTEGER2" << std::endl;
+      std::cout << "FILE1 -ef FILE2	FILE1 y FILE2 tienen el mismo device y numero de inode" << std::endl;
+      std::cout << "FILE1 -nt FILE2	FILE1 es mas nuevo que FILE2" << std::endl;
+      std::cout << "FILE1 -ot FILE2	FILE1 es mas antiguo que FILE2" << std::endl;
+      std::cout << std::endl;
+    }
+    
+    if (arguments.arguments.size() == 3) {
+      std::cout << arguments.arguments[1].c_str() << std::endl;
+      
+       if (strcmp(arguments.arguments[1].c_str(),"-n") != 0){
+	 if (strlen(arguments.arguments[2].c_str()) != 0)
+	    std::cout << "TRUE" << std::endl;
+	 else
+	    std::cout << "FALSE" << std::endl;
+      }
+       else if (strcmp(arguments.arguments[1].c_str(),"-z") == 0){
+	 if (strlen(arguments.arguments[1].c_str()) == 0)
+	    std::cout << "TRUE" << std::endl;
+	 else
+	    std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-b") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISBLK(buf.st_mode)) 
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-c") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISCHR(buf.st_mode))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-d") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISDIR(buf.st_mode))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-e") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1)
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-f") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISREG(buf.st_mode))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-g") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_ISGID))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-h") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (S_ISLNK(buf.st_mode))) 
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-L") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISLNK(buf.st_mode)) 
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-p") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISFIFO(buf.st_mode)) 
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-r") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_IRUSR))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-s") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && buf.st_size > 0)
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-S") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && S_ISSOCK(buf.st_mode)) 
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-k") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_ISVTX))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl; 
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-u") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_ISUID))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-w") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_IWUSR))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+       else if (strcmp(arguments.arguments[1].c_str(),"-x") == 0){
+	 struct stat buf;
+	 if (stat(arguments.arguments[2].c_str(),&buf) != -1 && (buf.st_mode & S_IXUSR))
+	   std::cout << "TRUE" << std::endl;
+	 else
+	   std::cout << "FALSE" << std::endl;
+       }
+    }
+    
+    if (arguments.arguments.size() == 4) {
+      if (strcmp(arguments.arguments[2].c_str(),"=") == 0){
+	if (strcmp(arguments.arguments[1].c_str(),arguments.arguments[3].c_str()) == 0)
+		      std::cout << "TRUE" << std::endl;
+		    else
+		      std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"!=") == 0){
+	if (strcmp(arguments.arguments[1].c_str(),arguments.arguments[3].c_str()) != 0)
+		      std::cout << "TRUE" << std::endl;
+		    else
+		      std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-eq") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 == num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-ge") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 >= num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-gt") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 > num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-le") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 <= num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-lt") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 < num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-ne") == 0){
+	int num1 = atoi(arguments.arguments[1].c_str());
+	int num2 = atoi(arguments.arguments[3].c_str());
+	if (num1 != num2)
+	  std::cout << "TRUE" << std::endl;
+	else
+	  std::cout << "FALSE" << std::endl;
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-ef") == 0){
+	 struct stat buf,buf2;
+	 if (stat(arguments.arguments[1].c_str(),&buf) != -1 && stat(arguments.arguments[3].c_str(),&buf2) != -1){
+	   if (buf.st_ino == buf2.st_ino && buf.st_dev == buf2.st_dev){
+	      std::cout << "TRUE" << std::endl;
+	   }
+	   else{
+	      std::cout << "FALSE" << std::endl;
+	   }
+	 }
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-nt") == 0){
+	struct stat buf,buf2;
+	 if (stat(arguments.arguments[1].c_str(),&buf) != -1 && stat(arguments.arguments[3].c_str(),&buf2) != -1){
+	   if (buf.st_mtime >= buf2.st_mtime)
+	      std::cout << "TRUE" << std::endl;
+	   else
+	      std::cout << "FALSE" << std::endl;
+	 }
+      }
+      else if (strcmp(arguments.arguments[2].c_str(),"-ot") == 0){
+	struct stat buf,buf2;
+	 if (stat(arguments.arguments[1].c_str(),&buf) != -1 && stat(arguments.arguments[3].c_str(),&buf2) != -1){
+	   if (buf.st_mtime <= buf2.st_mtime)
+	      std::cout << "TRUE" << std::endl;
+	   else
+	      std::cout << "FALSE" << std::endl;
+	}
       }
     }
     return false;
@@ -563,6 +824,7 @@ int main(int argc, char** argv)
     interpreter.onRunCommand("echo", &onEcho);
     interpreter.onRunCommand("cd", &onCd);
     interpreter.onRunCommand("kill", &onKill);
+    interpreter.onRunCommand("test", &onTest);
     interpreter.onRunCommand("mi_ls", &onMi_ls);
     interpreter.onRunCommand("lswc", &onLswc);
 
