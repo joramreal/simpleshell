@@ -16,6 +16,22 @@
  * limitations under the License.
  */
 
+/* Practica de Simple Shell
+ * Asignatura: Sistemas Operativos
+ * Alumno: Joram Real Gómez
+ * Numero de alu: 3243
+ * Turno: Tarde
+ * Dia de Entrega: Miercoles
+ * Fecha de realizacion: 16/12/2013
+ * Notas: Implementados elementos opcionales(mirar abajo)
+ * Opcionales Implementados: 
+ * 	- Comando echo con tuberias y redirecciones
+ * 	- Variables de entorno privadas
+ * 	- Comando kill
+ * 	- Comando cd
+ * 	- Comando test
+ */
+
 #include <iostream>
 #include <string>
 
@@ -32,8 +48,8 @@
 #include <sys/wait.h>   // waitpid(), open()
 #include <sys/stat.h>   // open()
 #include <unistd.h>     // exec(), fork(), close(), dup2(), pipe(), ...
-#include <signal.h>
-#include <sys/stat.h>
+#include <signal.h>     // kill()
+#include <sys/stat.h>   // stat()
 
 const char INTRO_TEXT[] = "\x1b[2J\x1b[H"
                           "Simple Shell - C++ Demo\n"
@@ -176,6 +192,9 @@ bool onKill(const std::string& command, cli::ShellArguments const& arguments)
     
     if (arguments.arguments.size() < 2) {
 	      std::cout << std::endl;
+	      std::cout << "Uso: kill pid" << std::endl;
+	      std::cout << "Uso: kill [-s numero_señal] pid" << std::endl;
+	      std::cout << std::endl;
 	      std::cout << "----------------------LISTADO DE SEÑALES----------------------" << std::endl;
 	      std::cout << std::endl;
 	      std::cout << "1) SIGHUP        2) SIGINT       3) SIGQUIT      4) SIGILL" << std::endl;
@@ -219,7 +238,7 @@ bool onTest(const std::string& command, cli::ShellArguments const& arguments)
     
     if (arguments.arguments.size() < 2) {
       std::cout << "-----------------------------------Comando Test--------------------------------------" << std::endl;
-      std::cout << "Uso: test expresion..." << std::endl;
+      std::cout << "Uso: test expresion... (Usar espacios entre elementos de las expresiones)" << std::endl;
       std::cout << std::endl;
       std::cout << "Expresiones:" << std::endl;
       std::cout << "-b fichero verdad si fichero existe y es un fichero especial de bloques." << std::endl;
@@ -253,10 +272,9 @@ bool onTest(const std::string& command, cli::ShellArguments const& arguments)
       std::cout << std::endl;
     }
     
-    if (arguments.arguments.size() == 3) {
-      std::cout << arguments.arguments[1].c_str() << std::endl;
+    if (arguments.arguments.size() == 3) {//EMPIEZA 2 ARGUMENTOS
       
-       if (strcmp(arguments.arguments[1].c_str(),"-n") != 0){
+       if (strcmp(arguments.arguments[1].c_str(),"-n") == 0){
 	 if (strlen(arguments.arguments[2].c_str()) != 0)
 	    std::cout << "TRUE" << std::endl;
 	 else
@@ -380,9 +398,9 @@ bool onTest(const std::string& command, cli::ShellArguments const& arguments)
 	 else
 	   std::cout << "FALSE" << std::endl;
        }
-    }
+    }//TERMINA 2 ARGUMENTOS
     
-    if (arguments.arguments.size() == 4) {
+    if (arguments.arguments.size() == 4) {//EMPIEZA 3 ARGUMENTOS
       if (strcmp(arguments.arguments[2].c_str(),"=") == 0){
 	if (strcmp(arguments.arguments[1].c_str(),arguments.arguments[3].c_str()) == 0)
 		      std::cout << "TRUE" << std::endl;
@@ -472,7 +490,7 @@ bool onTest(const std::string& command, cli::ShellArguments const& arguments)
 	      std::cout << "FALSE" << std::endl;
 	}
       }
-    }
+    }//TERMINA 3 ARGUMENTOS
     return false;
 }
 
@@ -534,30 +552,38 @@ bool onOtherCommand(const std::string& command,
 
     int pipeFileDes[2] = {-1, -1};
     
+    // Variables de entorno
     for (unsigned i = 0; i < arguments.variables.size(); ++i){
       std::cout << "Este comando será ejecutado con la variable de entorno " << arguments.variables[i].name.c_str() << " a " <<  arguments.variables[i].value.c_str() << std::endl;
       setenv(arguments.variables[i].name.c_str(),arguments.variables[i].value.c_str(),1);
     }
-      
+    
+    // Pipes
     if (arguments.terminator == cli::ShellArguments::PIPED)
       pipe(pipeFileDes);
     
     pid_t childPid = fork();
     if (childPid == 0) {            // Proceso hijo
+      
+      // Esta variable nos dirá si el anterior proceso fue pasado por tubería
       if (aux > 0) {
 			dup2(aux,0);	// duplicamos para poder cerrarlo después
 			close(aux);
       }	
+      
+      // Aqui sabemos si el proceso actual debe meterse en tubería
       if (arguments.terminator == cli::ShellArguments::PIPED) {
 			close (pipeFileDes[0]);
 			dup2(pipeFileDes[1], 1);
 			close (pipeFileDes[1]);
       }
+      // Redirecciones
       for (unsigned i = 0; i < arguments.redirections.size(); ++i){
             int fd = -1;
             int mode = S_IRUSR | S_IWUSR |      // u+rw
                        S_IRGRP | S_IWGRP |      // g+rw
                        S_IROTH | S_IWOTH;       // o+rw
+                // Redireccion >
   		if (arguments.redirections[i].type ==
                 	cli::StdioRedirection::TRUNCATED_OUTPUT) {
                 	fd = open(arguments.redirections[i].argument.c_str(),
@@ -567,6 +593,7 @@ bool onOtherCommand(const std::string& command,
                     		close(fd);
                 	}
             	}
+            	// Redireccion >>
 		if (arguments.redirections[i].type ==
                 	cli::StdioRedirection::APPENDED_OUTPUT) {
                 	fd = open(arguments.redirections[i].argument.c_str(),
@@ -576,6 +603,7 @@ bool onOtherCommand(const std::string& command,
                     		close(fd);
                 	}
             	}
+            	// Redireccion <
 		if (arguments.redirections[i].type ==
                 	cli::StdioRedirection::INPUT) {
                 	fd = open(arguments.redirections[i].argument.c_str(),
